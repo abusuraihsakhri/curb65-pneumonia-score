@@ -1,0 +1,6 @@
+patient_id,age,confusion,urea,respiratory_rate,systolic_bp,diastolic_bp
+P001,30,0,,18,120,80
+P002,75,1,10,32,80,55
+P003,55,0,5,22,130,85
+P004,68,0,8,28,95,65
+P005,82,1,12,35,75,50
