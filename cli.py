@@ -25,6 +25,14 @@ from curb65 import (
     ATS_IDSA_MINOR_CRITERIA,
 )
 
+try:
+    from agents.supervisor import SystemSupervisor
+    from agents.base import AuditLogger
+    from agents.models import SystemTaskPayload
+    AGENTS_AVAILABLE = True
+except ImportError:
+    AGENTS_AVAILABLE = False
+
 
 def _print_result(result, label="Result"):
     """Pretty-print a result dict."""
@@ -190,6 +198,58 @@ def cmd_batch(args):
     return 0
 
 
+def cmd_audit(args):
+    """Process a task through the supervisor and write to the audit trail."""
+    if not AGENTS_AVAILABLE:
+        print("Error: agents module not available (pydantic required).", file=sys.stderr)
+        return 1
+    supervisor = SystemSupervisor(model_provider="mock")
+    payload = SystemTaskPayload(
+        task_id=args.task_id,
+        target_identifier=args.target_identifier or args.task_id,
+        primary_metric=args.primary_metric,
+        secondary_metric=args.secondary_metric,
+        status_descriptor=args.status_descriptor,
+    )
+    dossier = supervisor.process_task(payload)
+    if args.json:
+        print(json.dumps(dossier.to_dict(), indent=2, default=str))
+    else:
+        _print_result(dossier.to_dict(), "Audit Dossier")
+    return 0
+
+
+def cmd_chat(args):
+    """Query the LLM via the supervisor."""
+    if not AGENTS_AVAILABLE:
+        print("Error: agents module not available (pydantic required).", file=sys.stderr)
+        return 1
+    supervisor = SystemSupervisor(model_provider="mock")
+    query = " ".join(args.query)
+    response = supervisor.query_supervisory_chat(query)
+    if args.json:
+        print(json.dumps({"query": query, "response": response}, indent=2))
+    else:
+        print(f"\nQuery: {query}\nResponse: {response}\n")
+    return 0
+
+
+def cmd_verify_audit(args):
+    """Verify the integrity of the HMAC-SHA256 audit trail."""
+    if not AGENTS_AVAILABLE:
+        print("Error: agents module not available (pydantic required).", file=sys.stderr)
+        return 1
+    valid = AuditLogger.verify_integrity()
+    trail_len = len(AuditLogger.get_trail())
+    if args.json:
+        print(json.dumps({"valid": valid, "trail_length": trail_len}, indent=2))
+    else:
+        status = "VALID" if valid else "TAMPERED"
+        print(f"\nAudit Trail Integrity: {status}")
+        print(f"Total audit blocks: {trail_len}\n")
+    return 0
+
+
 def build_parser():
     p = argparse.ArgumentParser(
         prog="curb65",
@@ -262,6 +322,24 @@ def build_parser():
     b.add_argument("--input", required=True, help="Input CSV path")
     b.add_argument("--output", default="scored.csv", help="Output CSV path")
 
+    # --- audit ---
+    a = sub.add_parser("audit", help="Process a task through the supervisor and write to the audit trail")
+    a.add_argument("--task-id", required=True, help="Task identifier")
+    a.add_argument("--target-identifier", default=None, help="Target identifier (defaults to task-id)")
+    a.add_argument("--primary-metric", type=float, default=0.0, help="Primary metric value")
+    a.add_argument("--secondary-metric", type=float, default=0.0, help="Secondary metric value")
+    a.add_argument("--status-descriptor", default="NOMINAL", help="Status descriptor")
+    a.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # --- chat ---
+    ch = sub.add_parser("chat", help="Query the LLM via the supervisor")
+    ch.add_argument("query", nargs="+", help="Query text")
+    ch.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # --- verify-audit ---
+    va = sub.add_parser("verify-audit", help="Verify the integrity of the HMAC-SHA256 audit trail")
+    va.add_argument("--json", action="store_true", help="Output as JSON")
+
     return p
 
 
@@ -279,6 +357,12 @@ def main(argv=None):
         return cmd_ats_idsa(args)
     elif args.cmd == "batch":
         return cmd_batch(args)
+    elif args.cmd == "audit":
+        return cmd_audit(args)
+    elif args.cmd == "chat":
+        return cmd_chat(args)
+    elif args.cmd == "verify-audit":
+        return cmd_verify_audit(args)
     else:
         parser.print_help()
         return 1

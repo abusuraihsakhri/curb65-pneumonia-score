@@ -1,7 +1,7 @@
 # CURB65 Pneumonia Score
 
 > **Domain:** Clinical Decision Support & Biomedical Computing  
-> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
+> **Reference Guidelines & Standards:** Standard Clinical Formulations & ISO/IEC Quality Frameworks
 
 <div align="center">
 
@@ -31,9 +31,7 @@ References:
   - Fine MJ et al. NEJM 1997;336:243-250
   - Mandell LA et al. Clin Infect Dis 2007;44:S27-S72
 
-This is a clinical decision SUPPORT tool. It does not replace clinical
-judgment. Treatment decisions must consider the full clinical picture.
-Stdlib only — no external dependencies.
+**Disclaimer:** This is a clinical decision SUPPORT tool. It does not replace clinical judgment. Treatment decisions must consider the full clinical picture.
 
 ---
 
@@ -51,6 +49,7 @@ Parameters (all bool):
     age_ge_65            – Age >= 65 years
 
 Returns dict with score, criteria met, mortality estimate, and management.
+
 - **`score_crb65()`**: Calculate CRB-65 score (no urea/BUN required).
 
 Parameters (all bool):
@@ -60,9 +59,11 @@ Parameters (all bool):
     age_ge_65             – Age >= 65 years
 
 Returns dict with score (0-4), criteria met, and management.
+
 - **`score_psi()`**: Calculate simplified PSI/PORT score and risk class.
 
 Returns dict with total points, risk class, mortality estimate, and management.
+
 - **`score_ats_idsa()`**: Evaluate ATS/IDSA 2007 severe CAP criteria.
 
 Parameters:
@@ -74,6 +75,7 @@ Severe CAP if:
   - 3 or more minor criteria met
 
 Returns dict with major count, minor count, is_severe, and recommendation.
+
 - **`evaluate_patient()`**: Score a patient from a dict (e.g. CSV row).
 
 Expected keys (case-insensitive, flexible):
@@ -90,58 +92,76 @@ Returns dict with CURB-65, CRB-65, and PSI results.
 
 ---
 
-## 📐 Mathematical Formulation & Logic
-
-```text
-  Calculate CURB-65 score.
-  score = sum(flags.values())
-  Calculate CRB-65 score (no urea/BUN required).
-  Calculate simplified PSI/PORT score and risk class.
-```
-
----
-
 ## 💻 CLI Quickstart & Usage
 
-### 1. Guided Interactive Mode
+### 1. Score a single patient (CURB-65)
 ```bash
-python cli.py
+python cli.py score --confusion --urea 25 --rr 32 --sbp 85 --age 70
 ```
 
-### 2. Direct Parameterized Evaluation
+### 2. Score without lab values (CRB-65)
 ```bash
-python cli.py --confusion <value> --urea <value> --rr <value> --sbp <value>
+python cli.py crb65 --confusion --rr 32 --sbp 85 --age 70
+```
+
+### 3. Calculate PSI/PORT risk class
+```bash
+python cli.py psi --age 70 --sex male --altered-mental-status --bun-ge-30
+```
+
+### 4. Evaluate ATS/IDSA severe CAP criteria
+```bash
+python cli.py ats-idsa --major septic_shock_requiring_vasopressors --minor respiratory_rate_ge_30 --minor confusion --minor bun_ge_20
+```
+
+### 5. Batch process a CSV file
+```bash
+python cli.py batch --input patients.csv --output scored.csv
+```
+
+### 6. Process a task through the audit trail
+```bash
+python cli.py audit --task-id TASK-001 --primary-metric 12.0
+```
+
+### 7. Query the LLM via the supervisor
+```bash
+python cli.py chat "Explain the CURB-65 criteria"
+```
+
+### 8. Verify audit trail integrity
+```bash
+python cli.py verify-audit
 ```
 
 ### Parameter Reference
-- `--confusion`: Specifies input measurement or parameter value.
-- `--urea`: Specifies input measurement or parameter value.
-- `--rr`: Specifies input measurement or parameter value.
-- `--sbp`: Specifies input measurement or parameter value.
-- `--age`: Specifies input measurement or parameter value.
-- `--dbp`: Specifies input measurement or parameter value.
-- `--sex`: Specifies input measurement or parameter value.
-- `--altered-mental-status`: Specifies input measurement or parameter value.
-- `--bun-ge-30`: Specifies input measurement or parameter value.
-- `--major`: Specifies input measurement or parameter value.
+- `--confusion`: New-onset confusion (flag)
+- `--urea`: Urea in mmol/L
+- `--bun`: BUN in mg/dL
+- `--rr`: Respiratory rate (breaths/min)
+- `--sbp`: Systolic BP (mmHg)
+- `--dbp`: Diastolic BP (mmHg)
+- `--age`: Patient age (years)
+- `--sex`: Biological sex (male/female)
+- `--json`: Output as JSON
 
-### Input Data Schema
+### Input Data Schema (for batch CSV)
 
 | Field | Description | Requirement |
 |:------|:------------|:------------|
-| `patient_id` | Parameter / observation metric | Required |
-| `age` | Parameter / observation metric | Required |
-| `confusion` | Parameter / observation metric | Required |
-| `urea` | Parameter / observation metric | Required |
-| `respiratory_rate` | Parameter / observation metric | Required |
-| `systolic_bp` | Parameter / observation metric | Required |
-| `diastolic_bp` | Parameter / observation metric | Required |
+| `patient_id` | Patient identifier | Optional |
+| `age` | Patient age in years | Required |
+| `confusion` | New-onset confusion (1/0/true/false) | Optional |
+| `urea` | Urea in mmol/L (or `bun` in mg/dL) | Optional |
+| `respiratory_rate` | Breaths per minute | Optional |
+| `systolic_bp` | Systolic blood pressure | Optional |
+| `diastolic_bp` | Diastolic blood pressure | Optional |
 
 ---
 
 ## 🛡️ Security & Enterprise Architecture
 
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
+* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
 * **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
 * **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
 * **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
@@ -157,10 +177,22 @@ Run the automated test suite:
 pytest -v
 ```
 
+Run tests for the core scoring module only (no external dependencies):
+
+```bash
+python -m pytest test_curb65.py -v
+```
+
+Run tests for the enterprise agents module (requires pydantic):
+
+```bash
+python -m pytest tests/ -v
+```
+
 Execute high-throughput batch simulation benchmarks:
 
 ```bash
-python simulator.py --tasks 1000 --concurrency 8
+python simulator.py 1000
 ```
 
 ---
@@ -171,3 +203,29 @@ python simulator.py --tasks 1000 --concurrency 8
 docker build -t curb65-pneumonia-score .
 docker run -p 8000:8000 curb65-pneumonia-score
 ```
+
+To run a specific command in the container:
+
+```bash
+docker run curb65-pneumonia-score python cli.py score --age 70 --confusion
+```
+
+---
+
+## 📦 Dependencies
+
+**Core module (`curb65.py`, `cli.py`):** Stdlib only — no external dependencies.
+
+**Enterprise agents module (`agents/`):** Requires `pydantic` and `fastapi`.
+
+Install optional dependencies:
+
+```bash
+pip install pydantic fastapi uvicorn pytest
+```
+
+---
+
+## 📄 License
+
+MIT License. See [LICENSE](LICENSE) for details.
