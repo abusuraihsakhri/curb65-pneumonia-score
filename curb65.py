@@ -18,6 +18,8 @@ judgment. Treatment decisions must consider the full clinical picture.
 Stdlib only — no external dependencies.
 """
 
+import math
+
 
 # ---------------------------------------------------------------------------
 # CURB-65 scoring
@@ -138,8 +140,8 @@ PSI_RISK_CLASS = {
 
 # PSI point assignments for common factors
 PSI_POINTS = {
-    "age_male": lambda age: max(0, age - 10),       # males: age - 10
-    "age_female": lambda age: max(0, age - 10),      # females: age - 10
+    "age_male": lambda age: age,                    # males: age in years
+    "age_female": lambda age: max(0, age - 10),      # females: age minus 10
     "nursing_home": 10,
     "neoplastic_disease": 30,
     "liver_disease": 20,
@@ -170,61 +172,67 @@ def score_psi(age, sex="male", nursing_home=False, neoplastic_disease=False,
               sodium_lt_130=False, glucose_ge_250=False, hematocrit_lt_30=False,
               pao2_lt_60_or_spo2_lt_90=False, pleural_effusion=False):
     """
-    Calculate simplified PSI/PORT score and risk class.
+    Calculate the adult PSI/PORT two-step risk classification (Fine 1997).
 
-    Returns dict with total points, risk class, mortality estimate, and management.
+    Stage 1: age <= 50 with no specified comorbidities or abnormal vital
+    signs is Class I. Nursing-home residence conservatively bypasses Stage 1.
+    Otherwise use age points (male: age; female: age - 10) and add the
+    original comorbidity, examination, and investigation points.
+
+    All unspecified risk factors are assumed absent. Clinical use requires
+    an actual assessment; a missing observation is not a normal observation.
     """
-    # Age points
-    if sex.lower() in ("male", "m"):
-        pts = max(0, int(age) - 10)
-    else:
-        pts = max(0, int(age) - 10)
+    try:
+        age = float(age)
+    except (ValueError, TypeError):
+        raise ValueError("Age must be a finite number of adult years") from None
+    if not math.isfinite(age) or not 18 <= age <= 120:
+        raise ValueError("PSI applies to adults aged 18–120 years")
+    sex = str(sex).lower()
+    if sex not in ("male", "m", "female", "f"):
+        raise ValueError("sex must be male or female for the historical PSI formula")
 
-    # Add points for comorbidities / exam / lab findings
-    if nursing_home:
-        pts += 10
-    if neoplastic_disease:
-        pts += 30
-    if liver_disease:
-        pts += 20
-    if congestive_heart_failure:
-        pts += 10
-    if cerebrovascular_disease:
-        pts += 10
-    if renal_disease:
-        pts += 10
-    if altered_mental_status:
-        pts += 20
-    if respiratory_rate_ge_30:
-        pts += 20
-    if systolic_bp_lt_90:
-        pts += 20
-    if temperature_lt_35_or_ge_40:
-        pts += 15
-    if pulse_ge_125:
-        pts += 10
-    if ph_lt_735:
-        pts += 30
-    if bun_ge_30:
-        pts += 20
-    if sodium_lt_130:
-        pts += 20
-    if glucose_ge_250:
-        pts += 10
-    if hematocrit_lt_30:
-        pts += 10
-    if pao2_lt_60_or_spo2_lt_90:
-        pts += 10
-    if pleural_effusion:
-        pts += 10
+    clinical_findings = (
+        neoplastic_disease, liver_disease, congestive_heart_failure,
+        cerebrovascular_disease, renal_disease, altered_mental_status,
+        respiratory_rate_ge_30, systolic_bp_lt_90,
+        temperature_lt_35_or_ge_40, pulse_ge_125,
+    )
+    if age <= 50 and not nursing_home and not any(clinical_findings):
+        info = PSI_RISK_CLASS["I"]
+        return {
+            "points": 0,  # Class I is determined by the first step, not points.
+            "risk_class": "I",
+            "mortality_pct": info["mortality_pct"],
+            "management": info["management"],
+        }
 
-    # Determine risk class
-    risk_class = "V"
-    for cls, info in PSI_RISK_CLASS.items():
-        if pts <= info["max_score"]:
-            risk_class = cls
-            break
-
+    pts = int(age) if sex in ("male", "m") else max(0, int(age) - 10)
+    point_flags = {
+        "nursing_home": nursing_home,
+        "neoplastic_disease": neoplastic_disease,
+        "liver_disease": liver_disease,
+        "congestive_heart_failure": congestive_heart_failure,
+        "cerebrovascular_disease": cerebrovascular_disease,
+        "renal_disease": renal_disease,
+        "altered_mental_status": altered_mental_status,
+        "respiratory_rate_ge_30": respiratory_rate_ge_30,
+        "systolic_bp_lt_90": systolic_bp_lt_90,
+        "temperature_lt_35_or_ge_40": temperature_lt_35_or_ge_40,
+        "pulse_ge_125": pulse_ge_125,
+        "ph_lt_735": ph_lt_735,
+        "bun_ge_30": bun_ge_30,
+        "sodium_lt_130": sodium_lt_130,
+        "glucose_ge_250": glucose_ge_250,
+        "hematocrit_lt_30": hematocrit_lt_30,
+        "pao2_lt_60_or_spo2_lt_90": pao2_lt_60_or_spo2_lt_90,
+        "pleural_effusion": pleural_effusion,
+    }
+    pts += sum(PSI_POINTS[name] for name, enabled in point_flags.items() if enabled)
+    risk_class = next(
+        cls for cls in ("II", "III", "IV", "V")
+        if pts <= PSI_RISK_CLASS[cls]["max_score"]
+    )
     info = PSI_RISK_CLASS[risk_class]
     return {
         "points": pts,
@@ -232,7 +240,6 @@ def score_psi(age, sex="male", nursing_home=False, neoplastic_disease=False,
         "mortality_pct": info["mortality_pct"],
         "management": info["management"],
     }
-
 
 # ---------------------------------------------------------------------------
 # ATS / IDSA  2007 severe CAP criteria
@@ -328,10 +335,15 @@ def evaluate_patient(row):
         return s in ("1", "true", "yes", "y", "t")
 
     def _num(val, default=None):
-        try:
-            return float(val)
-        except (ValueError, TypeError):
+        if val is None or str(val).strip() == "":
             return default
+        try:
+            number = float(val)
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid numeric input: {val!r}") from None
+        if not math.isfinite(number):
+            raise ValueError(f"Non-finite numeric input: {val!r}")
+        return number
 
     # Normalize keys to lowercase
     norm = {}
@@ -341,16 +353,18 @@ def evaluate_patient(row):
     # --- Confusion ---
     confusion = _bool(norm.get("confusion", "0"))
 
-    # --- Urea / BUN ---
+    # --- Urea / BUN (explicit columns have explicit units) ---
     urea_elevated = _bool(norm.get("urea_elevated", norm.get("urea_bun_elevated", "0")))
-    # Also check numeric urea value if present
-    urea_val = _num(norm.get("urea", norm.get("bun", None)))
-    if urea_val is not None:
-        if urea_val > 7:  # mmol/L
-            urea_elevated = True
-        # Also accept mg/dL (BUN > 20)
-        if urea_val > 20 and urea_val <= 100:  # heuristic: if >20 and <=100, likely mg/dL
-            urea_elevated = True
+    urea_mmol = _num(norm.get("urea"))        # mmol/L
+    bun_mgdl = _num(norm.get("bun"))          # mg/dL
+    if urea_mmol is not None:
+        if urea_mmol < 0:
+            raise ValueError("Urea cannot be negative")
+        urea_elevated = urea_elevated or urea_mmol > 7
+    if bun_mgdl is not None:
+        if bun_mgdl < 0:
+            raise ValueError("BUN cannot be negative")
+        urea_elevated = urea_elevated or bun_mgdl > 20
 
     # --- Respiratory rate ---
     rr_high = _bool(norm.get("respiratory_rate_high", "0"))
@@ -368,7 +382,9 @@ def evaluate_patient(row):
         bp_low = True
 
     # --- Age ---
-    age = _num(norm.get("age", 0), 0)
+    age = _num(norm.get("age"))
+    if age is None or not 18 <= age <= 120:
+        raise ValueError("Valid adult age (18–120 years) is required")
     age_ge_65 = age >= 65
 
     curb = score_curb65(confusion, urea_elevated, rr_high, bp_low, age_ge_65)
