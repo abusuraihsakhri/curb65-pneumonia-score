@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+__pycache__
+.pytest_cache
+*.pyc
+*.log
+.env
+.env.*
+!*.env.example
+results.csv
+scored.csv
