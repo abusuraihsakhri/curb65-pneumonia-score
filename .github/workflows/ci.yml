@@ -65,3 +65,15 @@ jobs:
           path: web
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Smoke-test deployed GitHub Pages assets
+        env:
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          BASE_URL="${PAGES_URL%/}"
+          curl --fail --silent --show-error --location --retry 8 --retry-delay 3 --retry-all-errors "${BASE_URL}/" -o /tmp/curb65-index.html
+          curl --fail --silent --show-error --location --retry 8 --retry-delay 3 --retry-all-errors "${BASE_URL}/app.js" -o /tmp/curb65-app.js
+          grep -Fq 'id="score-form"' /tmp/curb65-index.html
+          grep -Fq 'function computeScores' /tmp/curb65-app.js
+          node --check /tmp/curb65-app.js
+
