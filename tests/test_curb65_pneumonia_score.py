@@ -79,3 +79,11 @@ def test_audit_hmac_detects_replaced_signature():
     assert audit.verify_integrity() is True
     entry["current_hash"] = "0" * 64
     assert audit.verify_integrity() is False
+
+
+def test_mock_adapter_is_explicitly_test_only():
+    from agents.llm_factory import LLMFactory
+    response = LLMFactory.create('mock').invoke('Test case')
+    assert 'test-only response' in response
+    with pytest.raises(ValueError):
+        LLMFactory.create('unsupported-provider')
