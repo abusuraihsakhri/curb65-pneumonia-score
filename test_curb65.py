@@ -377,6 +377,18 @@ class TestEvaluatePatient(unittest.TestCase):
         r = evaluate_patient(row)
         self.assertFalse(r["curb65"]["criteria"]["urea_elevated"])
 
+    def test_completeness_signals_missing_assessments(self):
+        partial = evaluate_patient({"age": "60"})
+        self.assertFalse(partial["curb65_complete"])
+        self.assertFalse(partial["crb65_complete"])
+        self.assertIn("urea_or_bun", partial["missing_inputs"])
+        complete = evaluate_patient({
+            "age": "60", "confusion": "0", "respiratory_rate": "20",
+            "systolic_bp": "120", "diastolic_bp": "80", "urea": "6"
+        })
+        self.assertTrue(complete["curb65_complete"])
+        self.assertTrue(complete["crb65_complete"])
+
     def test_numeric_lab_units_are_not_inferred(self):
         self.assertFalse(evaluate_patient({"age": "50", "bun": "10"})["curb65"]["criteria"]["urea_elevated"])
         self.assertTrue(evaluate_patient({"age": "50", "urea": "10"})["curb65"]["criteria"]["urea_elevated"])
