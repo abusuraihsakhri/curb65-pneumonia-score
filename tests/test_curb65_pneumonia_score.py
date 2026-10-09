@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from agents.base import PHIGuard, AuditLogger, SecurityException
+from agents.base import PHIGuard, AuditLogger, SecurityException, AuditTrail
 from agents.models import SystemTaskPayload, UrgencyLevel, SystemIntegrityStatus
 from agents.workers import InvariantQCWorker, SafetyEscalationWorker, ProtocolConformanceWorker
 from agents.supervisor import SystemSupervisor
@@ -63,3 +63,27 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+def test_audit_hmac_detects_changes_to_signed_fields():
+    audit = AuditTrail(secret_key="deterministic-test-key")
+    audit.log("tester", "test", "create", {"status": "ok"})
+    audit.log("tester", "test", "update", {"status": "ok"})
+    assert audit.verify_integrity() is True
+    audit.logs[0]["actor"] = "other"
+    assert audit.verify_integrity() is False
+
+
+def test_audit_hmac_detects_replaced_signature():
+    audit = AuditTrail(secret_key="deterministic-test-key")
+    entry = audit.log("tester", "test", "create", {"status": "ok"})
+    assert audit.verify_integrity() is True
+    entry["current_hash"] = "0" * 64
+    assert audit.verify_integrity() is False
+
+
+def test_mock_adapter_is_explicitly_test_only():
+    from agents.llm_factory import LLMFactory
+    response = LLMFactory.create('mock').invoke('Test case')
+    assert 'test-only response' in response
+    with pytest.raises(ValueError):
+        LLMFactory.create('unsupported-provider')

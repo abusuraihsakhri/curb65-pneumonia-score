@@ -19,5 +19,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Default: run the CLI score command (interactive mode available via docker run ...)
-CMD ["python", "cli.py", "--help"]
+# Default: run the API service; CLI remains available via docker run IMAGE python cli.py ...
+CMD ["uvicorn", "agents.api:app", "--host", "0.0.0.0", "--port", "8000"]

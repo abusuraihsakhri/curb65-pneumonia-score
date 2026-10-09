@@ -174,7 +174,10 @@ def cmd_batch(args):
     out_fields = fieldnames + [
         "curb65_score", "curb65_mortality_pct", "curb65_management",
         "crb65_score", "crb65_management",
+        "curb65_complete", "crb65_complete", "missing_inputs",
     ]
+
+    out_fields = list(dict.fromkeys(out_fields))
 
     out_rows = []
     for row in rows:
@@ -187,6 +190,9 @@ def cmd_batch(args):
         merged["curb65_management"] = curb["management"]
         merged["crb65_score"] = crb["score"]
         merged["crb65_management"] = crb["management"]
+        merged["curb65_complete"] = result["curb65_complete"]
+        merged["crb65_complete"] = result["crb65_complete"]
+        merged["missing_inputs"] = ";".join(result["missing_inputs"])
         out_rows.append(merged)
 
     with open(args.output, "w", newline="", encoding="utf-8") as f:
@@ -194,7 +200,10 @@ def cmd_batch(args):
         writer.writeheader()
         writer.writerows(out_rows)
 
+    incomplete = sum(not r["curb65_complete"] for r in out_rows)
     print(f"Processed {len(out_rows)} patients -> {args.output}")
+    if incomplete:
+        print(f"Warning: {incomplete} rows have missing CURB-65 criteria; scores may underestimate severity.", file=sys.stderr)
     return 0
 
 

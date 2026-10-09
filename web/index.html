@@ -1,236 +1,132 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Curb65 Pneumonia Score — Operations Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #090d16;
-            --card: #111827;
-            --border: #1f293d;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.25);
-            --text: #f3f4f6;
-            --text-muted: #9ca3af;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2rem;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.65rem 0.9rem;
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.7rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { background: #2563eb; }
-        .terminal {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #10b981;
-            height: 380px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .metric-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem; }
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Adult CURB-65 and CRB-65 community-acquired pneumonia severity calculator; runs entirely in the browser.">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'; img-src 'self';">
+  <title>CURB-65 / CRB-65 | Pneumonia severity</title>
+  <style>
+    :root {color-scheme: light;--bg:#f3f6fb;--surface:#fff;--ink:#182638;--muted:#516275;--border:#d9e2ee;--accent:#155eae;--accent-light:#eaf3ff;--danger:#ad202c;--positive:#135d43}
+    * {box-sizing:border-box}
+    body {margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    main {max-width:1080px;margin:auto;padding:30px 22px 48px}
+    h1 {font-size:clamp(1.7rem,3vw,2.4rem);line-height:1.2;margin:0 0 8px}
+    h2 {font-size:1.2rem;margin:0 0 14px}
+    p {margin:0 0 14px}
+    .intro {max-width:810px;margin-bottom:22px}
+    .muted {color:var(--muted)}
+    .pill {display:inline-block;color:var(--positive);background:#e8f7ef;border:1px solid #bbddcb;padding:3px 10px;border-radius:30px;font-size:.8rem;font-weight:650;margin-bottom:12px}
+    .layout {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(290px,.9fr);gap:18px;align-items:start}
+    .panel {border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:24px;box-shadow:0 7px 25px #17334d0b}
+    .form-grid {display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .field {min-width:0}
+    label {display:block;font-size:.9rem;font-weight:650;margin-bottom:6px}
+    .help {display:block;font-size:.78rem;color:var(--muted);margin-top:4px}
+    input:not([type="checkbox"]),select {display:block;width:100%;font:inherit;color:var(--ink);background:white;border:1px solid #acbccb;padding:10px 12px;border-radius:7px;min-height:45px}
+    input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible {outline:3px solid #6dafea;outline-offset:2px}
+    .checkbox {display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:#f6f9fc;border:1px solid var(--border);border-radius:8px;margin:16px 0}
+    .checkbox input {width:19px;height:19px;margin-top:2px;accent-color:var(--accent)}
+    .checkbox label {margin:0}
+    .actions {display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+    button {cursor:pointer;min-height:44px;padding:10px 18px;border-radius:8px;font:inherit;font-weight:650}
+    .primary {border:1px solid var(--accent);background:var(--accent);color:white}
+    .primary:hover {background:#0d4c90}
+    .secondary {border:1px solid #a5b8cc;background:white;color:var(--ink)}
+    .secondary:hover {background:#f3f8ff}
+    .error {color:var(--danger);font-weight:650;margin-top:12px}
+    #result {margin-bottom:18px;border-color:#a6c4e2}
+    #result h2 {margin-bottom:18px}
+    .scores {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    .score-card {border:1px solid var(--border);border-radius:9px;padding:14px;background:var(--accent-light)}
+    .score-card span {display:block;font-size:.84rem;color:var(--muted)}
+    .score-card strong {display:block;font-size:clamp(1.2rem,2vw,1.6rem);font-variant-numeric:tabular-nums}
+    .interpretation {padding:14px;border-left:4px solid var(--accent);background:#f5f9ff;margin-bottom:14px}
+    #criteria {padding-left:22px;margin:5px 0}
+    #criteria li {margin-bottom:6px}
+    .met {color:#8b2630;font-weight:550}
+    .not-met {color:var(--positive)}
+    .note {font-size:.87rem;color:var(--muted)}
+    .rule-list {padding-left:22px;margin:0 0 16px}
+    .rule-list li {margin-bottom:8px}
+    .references {font-size:.83rem;margin-top:24px}
+    a {color:#0e5aab}
+    [hidden] {display:none!important}
+    @media(max-width:800px){.layout{grid-template-columns:1fr}.panel{padding:19px}main{padding:22px 15px 36px}}
+    @media(max-width:430px){.form-grid,.scores{grid-template-columns:1fr}.actions button{flex:1}}
+    @media print{body{background:white}main{padding:0}.panel{box-shadow:none}form,.intro .pill{display:none}.layout{display:block}}
+  </style>
+  <script defer src="./app.js"></script>
 </head>
 <body>
-
-    <div class="header">
-        <div class="header-title">
-            <h1>Curb65 Pneumonia Score</h1>
-            <p>Domain: Clinical & Cryptographic AI | Standard: CAP / CLSI / NIST Standards | LabMind-Atlas Architecture</p>
+<main>
+  <header class="intro">
+    <span class="pill">Local, browser-only calculation</span>
+    <h1>CURB-65 and CRB-65</h1>
+    <p class="muted">Adult community-acquired pneumonia severity assessment. Enter clinical observations to calculate the five-point CURB-65 score, or the four-point CRB-65 when urea/BUN is unavailable.</p>
+    <p class="note"><strong>Clinical decision support only.</strong> The score does not diagnose pneumonia, exclude severe illness, or replace professional judgment. Hypoxemia, sepsis, comorbidities, and social circumstances may warrant urgent care regardless of the score.</p>
+  </header>
+  <div class="layout">
+    <section class="panel" aria-labelledby="input-title">
+      <h2 id="input-title">Clinical observations</h2>
+      <form id="score-form" novalidate autocomplete="off">
+        <div class="form-grid">
+          <div class="field"><label for="age">Age (years)</label><input id="age" type="number" required min="18" max="120" step="1" placeholder="e.g. 68"></div>
+          <div class="field"><label for="rr">Respiratory rate (/min)</label><input id="rr" type="number" required min="1" max="100" step="1" placeholder="e.g. 28"></div>
+          <div class="field"><label for="sbp">Systolic BP (mmHg)</label><input id="sbp" type="number" required min="40" max="300" step="1" placeholder="e.g. 115"></div>
+          <div class="field"><label for="dbp">Diastolic BP (mmHg)</label><input id="dbp" type="number" required min="20" max="200" step="1" placeholder="e.g. 75"></div>
         </div>
-        <div>
-            <span class="badge">Air-Gapped Active</span>
-            <span class="badge" style="background: rgba(16,185,129,0.2); color: #10b981; border-color: #10b981;">Zero-PHI Guard Active</span>
+        <div class="checkbox">
+          <input type="checkbox" id="confusion">
+          <label for="confusion">New-onset confusion <span class="help">Disorientation or abnormal mental status attributable to the acute presentation.</span></label>
         </div>
+        <div class="field">
+          <label for="lab-unit">Laboratory measurement</label>
+          <select id="lab-unit">
+            <option value="urea">Serum urea (mmol/L)</option>
+            <option value="bun">Blood urea nitrogen (mg/dL)</option>
+            <option value="none">Not available — CRB-65 only</option>
+          </select>
+        </div>
+        <div id="lab-wrap" class="field" style="margin-top:14px">
+          <label id="lab-label" for="lab-value">Serum urea (mmol/L)</label>
+          <input id="lab-value" type="number" min="0" max="80" step="0.1" required placeholder="Enter measured value">
+          <span class="help">Urea &gt;7 mmol/L or BUN &gt;20 mg/dL scores one point. Check the reported units.</span>
+        </div>
+        <div id="errors" class="error" role="alert" aria-live="polite"></div>
+        <div class="actions"><button type="submit" class="primary">Calculate score</button><button type="reset" class="secondary">Clear fields</button></div>
+      </form>
+    </section>
+    <div>
+      <section class="panel" id="result" hidden tabindex="-1" aria-live="polite" aria-labelledby="result-title">
+        <h2 id="result-title">Calculated results</h2>
+        <div class="scores">
+          <div class="score-card"><span>CURB-65</span><strong id="curb-score">—</strong></div>
+          <div class="score-card"><span>CRB-65</span><strong id="crb-score">—</strong></div>
+        </div>
+        <p class="interpretation" id="interpretation"></p>
+        <h2>Criteria assessment</h2><ul id="criteria"></ul>
+        <p class="note">These are severity scores, not individual mortality predictions or standalone treatment instructions.</p>
+      </section>
+      <aside class="panel" aria-labelledby="guide-title">
+        <h2 id="guide-title">Scoring criteria</h2>
+        <ul class="rule-list">
+          <li><strong>C</strong> — New-onset confusion</li>
+          <li><strong>U</strong> — Urea &gt;7 mmol/L (or BUN &gt;20 mg/dL)</li>
+          <li><strong>R</strong> — Respiratory rate ≥30/min</li>
+          <li><strong>B</strong> — Systolic BP &lt;90 mmHg or diastolic BP ≤60 mmHg</li>
+          <li><strong>65</strong> — Age ≥65 years</li>
+        </ul>
+        <p class="note">Each positive finding counts one point. CRB-65 omits urea; both versions are computed when a laboratory value is provided.</p>
+        <p class="note"><strong>Privacy:</strong> No patient names or identifiers are requested. Entered values are processed locally in your browser, without network submission or persistent storage.</p>
+      </aside>
     </div>
-
-    <div class="metrics-bar">
-        <div class="metric-box">
-            <div class="metric-label">System Status</div>
-            <div class="metric-val" style="color: var(--success);" id="m-status">OPTIMAL</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Tasks Processed</div>
-            <div class="metric-val" id="m-tasks">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Audit Blocks Signed</div>
-            <div class="metric-val" id="m-audit">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">PHI Interceptions</div>
-            <div class="metric-val" style="color: var(--accent);" id="m-phi">0</div>
-        </div>
-    </div>
-
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ Dispatch Distributed Component Audit</h2>
-            <div class="form-group">
-                <label>Task / Sample ID</label>
-                <input type="text" id="task_id" value="TASK-2026-LIVE-01">
-            </div>
-            <div class="form-group">
-                <label>Target Identifier</label>
-                <input type="text" id="target_id" value="SPECIMEN-ALPHA-77">
-            </div>
-            <div class="form-group">
-                <label>Primary Measurement / Value</label>
-                <input type="number" id="primary_metric" value="29.4" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Secondary Metric / Kinetic Index</label>
-                <input type="number" id="secondary_metric" value="14.8" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Status / Phenotype Descriptor</label>
-                <input type="text" id="status_descriptor" value="DISCORDANT_ANOMALY">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="is_critical" checked> Trigger Emergency / Critical Flag</label>
-            </div>
-            <button class="btn" onclick="runAudit()">Execute Distributed Component Audit</button>
-        </div>
-
-        <div class="card">
-            <h2>📊 Real-Time Consensus Dossier & Audit Log</h2>
-            <div class="terminal" id="outputConsole">// Curb65 Pneumonia Score Operations Console Ready
-// Connection established with Air-Gapped Supervisor
-// Cryptographic HMAC-SHA256 audit ledger loaded.
-// Ready for live task payload dispatch...</div>
-        </div>
-    </div>
-
-    <script>
-        async function runAudit() {
-            const consoleEl = document.getElementById('outputConsole');
-            consoleEl.innerText = "// Dispatching task across specialized workers...
-// Invoking InvariantQCWorker, SafetyEscalationWorker, ProtocolWorker...";
-
-            const payload = {
-                task_id: document.getElementById('task_id').value,
-                target_identifier: document.getElementById('target_id').value,
-                primary_metric: parseFloat(document.getElementById('primary_metric').value),
-                secondary_metric: parseFloat(document.getElementById('secondary_metric').value),
-                status_descriptor: document.getElementById('status_descriptor').value,
-                is_critical_flag: document.getElementById('is_critical').checked
-            };
-
-            try {
-                const res = await fetch('/api/audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                consoleEl.innerText = JSON.stringify(data, null, 2);
-                document.getElementById('m-tasks').innerText = parseInt(document.getElementById('m-tasks').innerText) + 1;
-                document.getElementById('m-audit').innerText = parseInt(document.getElementById('m-audit').innerText) + 1;
-            } catch (err) {
-                consoleEl.innerText = "// Offline / Simulation Output:\n" + JSON.stringify({
-                    dossier_id: "DOSSIER-SIM-" + Math.floor(Math.random()*10000),
-                    system: "curb65-pneumonia-score",
-                    domain: "Clinical & Cryptographic AI",
-                    task_id: payload.task_id,
-                    overall_urgency: payload.is_critical_flag ? "CRITICAL_STAT_PANIC" : "ELEVATED_RISK",
-                    integrity_status: "DISCORDANT_ANOMALY",
-                    alerts: [
-                        { worker: "InvariantQCWorker", alert: "Primary metric exceeds upper reference bound" },
-                        { worker: "SafetyEscalationWorker", alert: "Critical emergency interlock flag active" }
-                    ],
-                    audit_hash: "HMAC_SHA256_e83f9a72b941d6c381f9"
-                }, null, 2);
-            }
-        }
-    </script>
+  </div>
+  <footer class="references">
+    <p>References: Lim WS et al. <em>Thorax.</em> 2003;58:377–382; ATS/IDSA adult CAP guidance. For education and professional reference, not autonomous triage.</p>
+    <p><a href="https://github.com/abusuraihsakhri/curb65-pneumonia-score">Source repository</a></p>
+  </footer>
+</main>
 </body>
 </html>
