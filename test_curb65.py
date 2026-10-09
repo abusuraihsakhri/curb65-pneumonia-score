@@ -225,50 +225,47 @@ class TestCRB65(unittest.TestCase):
 class TestPSI(unittest.TestCase):
     """PSI/PORT risk class scoring."""
 
-    def test_young_healthy_class_II(self):
-        """20-year-old male, no comorbidities -> 10 points -> Class II."""
-        r = score_psi(age=20, sex="male")
-        self.assertEqual(r["risk_class"], "II")
-        self.assertEqual(r["points"], 10)  # 20-10=10
+    def test_young_healthy_class_i(self):
+        self.assertEqual(score_psi(age=20, sex="male")["risk_class"], "I")
 
-    def test_very_young_class_I(self):
-        """10-year-old -> 0 points -> Class I."""
-        r = score_psi(age=10, sex="male")
-        self.assertEqual(r["risk_class"], "I")
-        self.assertEqual(r["points"], 0)
+    def test_age_50_without_findings_class_i(self):
+        self.assertEqual(score_psi(age=50, sex="female")["risk_class"], "I")
 
-    def test_class_II(self):
-        """Age 50 male -> 40 points -> Class II."""
-        r = score_psi(age=50, sex="male")
-        self.assertEqual(r["risk_class"], "II")
-        self.assertEqual(r["points"], 40)
+    def test_class_ii(self):
+        r = score_psi(age=60, sex="male")
+        self.assertEqual((r["points"], r["risk_class"]), (60, "II"))
 
-    def test_class_III(self):
-        """Age 80 male -> 70 points -> Class II (boundary)."""
+    def test_class_iii(self):
         r = score_psi(age=80, sex="male")
-        self.assertEqual(r["points"], 70)
-        self.assertEqual(r["risk_class"], "II")
+        self.assertEqual((r["points"], r["risk_class"]), (80, "III"))
 
-    def test_class_IV(self):
-        """Age 80 male + CHF + CVD -> 70+10+10 = 90 -> Class III."""
+    def test_class_iv(self):
         r = score_psi(age=80, sex="male", congestive_heart_failure=True,
                       cerebrovascular_disease=True)
-        self.assertEqual(r["points"], 90)
-        self.assertEqual(r["risk_class"], "III")
+        self.assertEqual((r["points"], r["risk_class"]), (100, "IV"))
 
-    def test_class_V(self):
-        """Elderly with many comorbidities -> Class V."""
+    def test_class_v(self):
         r = score_psi(
-            age=85, sex="male",
-            neoplastic_disease=True,
-            liver_disease=True,
-            altered_mental_status=True,
-            respiratory_rate_ge_30=True,
+            age=85, sex="male", neoplastic_disease=True, liver_disease=True,
+            altered_mental_status=True, respiratory_rate_ge_30=True,
             systolic_bp_lt_90=True,
         )
-        # 75 + 30 + 20 + 20 + 20 + 20 = 185 -> Class V
-        self.assertEqual(r["risk_class"], "V")
-        self.assertGreater(r["points"], 130)
+        self.assertEqual((r["points"], r["risk_class"]), (195, "V"))
+
+    def test_female_age_adjustment(self):
+        self.assertEqual(score_psi(age=80, sex="female")["points"], 70)
+        self.assertEqual(score_psi(age=80, sex="male")["points"], 80)
+
+    def test_stage_one_bypassed_by_abnormal_clinical_findings(self):
+        r = score_psi(age=40, sex="male", respiratory_rate_ge_30=True)
+        self.assertEqual((r["points"], r["risk_class"]), (60, "II"))
+
+    def test_invalid_adult_age_and_sex_rejected(self):
+        for age in (10, -1, float("nan"), 121):
+            with self.assertRaises(ValueError):
+                score_psi(age)
+        with self.assertRaises(ValueError):
+            score_psi(60, sex="other")
 
     def test_mortality_increases_by_class(self):
         """Higher risk classes should have higher mortality."""
@@ -379,6 +376,18 @@ class TestEvaluatePatient(unittest.TestCase):
         row = {"age": "50", "urea": "5"}
         r = evaluate_patient(row)
         self.assertFalse(r["curb65"]["criteria"]["urea_elevated"])
+
+    def test_numeric_lab_units_are_not_inferred(self):
+        self.assertFalse(evaluate_patient({"age": "50", "bun": "10"})["curb65"]["criteria"]["urea_elevated"])
+        self.assertTrue(evaluate_patient({"age": "50", "urea": "10"})["curb65"]["criteria"]["urea_elevated"])
+        self.assertFalse(evaluate_patient({"age": "50", "bun": "20"})["curb65"]["criteria"]["urea_elevated"])
+        self.assertTrue(evaluate_patient({"age": "50", "bun": "21"})["curb65"]["criteria"]["urea_elevated"])
+
+    def test_invalid_age_and_nonfinite_lab_rejected(self):
+        for row in ({"age": ""}, {"age": "10"}, {"age": "65", "bun": "nan"},
+                    {"age": "70", "urea": "no data"}):
+            with self.assertRaises(ValueError):
+                evaluate_patient(row)
 
     def test_bun_mgdl(self):
         """BUN > 20 mg/dL should trigger."""
