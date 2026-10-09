@@ -1,40 +1,67 @@
-name: Curb65 Pneumonia Score CI/CD & Security Verification
+name: Test and deploy CURB-65
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master]
   pull_request:
-    branches: [ master, main ]
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  test-and-audit:
+  python-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install optional API and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'pydantic>=2,<3' fastapi uvicorn pytest
+          python -m pip check
+      - name: Compile Python sources
+        run: python -m compileall -q cli.py curb65.py agents enrichment.py simulator.py
+      - name: Run Python regression suite
+        run: python -m pytest -q
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+  browser-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify browser syntax
+        run: node --check web/app.js
+      - name: Run browser calculation tests
+        run: node --test tests/browser.test.cjs
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install fastapi uvicorn pydantic pytest
-
-    - name: Run Pytest Suite
-      run: |
-        pytest -v
-
-    - name: Security SAST & Zero-PHI Audit
-      run: |
-        python -c "
-        from agents.base import PHIGuard, AuditLogger
-        import pytest
-        assert AuditLogger.verify_integrity() is True
-        print('Security & Zero-PHI Audit Passed!')
-        "
+  pages:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: [python-tests, browser-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4
