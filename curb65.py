@@ -387,10 +387,30 @@ def evaluate_patient(row):
         raise ValueError("Valid adult age (18–120 years) is required")
     age_ge_65 = age >= 65
 
+    # Missing observations cannot safely be interpreted as normal findings.
+    present = lambda *keys: any(
+        key in norm and str(norm[key]).strip() != "" for key in keys
+    )
+    missing_common = []
+    if not present("confusion"):
+        missing_common.append("confusion")
+    if not present("respiratory_rate", "rr", "respiratory_rate_high"):
+        missing_common.append("respiratory_rate")
+    if not present("blood_pressure_low") and not (
+        present("systolic_bp", "sbp") and present("diastolic_bp", "dbp")
+    ):
+        missing_common.append("systolic_and_diastolic_bp")
+    missing_curb = list(missing_common)
+    if not present("urea_elevated", "urea_bun_elevated", "urea", "bun"):
+        missing_curb.append("urea_or_bun")
+
     curb = score_curb65(confusion, urea_elevated, rr_high, bp_low, age_ge_65)
     crb = score_crb65(confusion, rr_high, bp_low, age_ge_65)
 
     return {
         "curb65": curb,
         "crb65": crb,
+        "curb65_complete": not missing_curb,
+        "crb65_complete": not missing_common,
+        "missing_inputs": missing_curb,
     }
