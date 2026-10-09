@@ -67,7 +67,7 @@ node --check web/app.js
 node --test tests/browser.test.cjs
 ```
 
-The GitHub Actions workflow tests Python 3.10–3.12 and Node 22 before attempting a Pages deployment from `web/` on pushes to `master`. Pages must be configured in repository settings to use **GitHub Actions** as the build and deployment source.
+GitHub Actions runs Python 3.10–3.12, Node 22 scoring tests, a `pip-audit` check of installed dependencies, and a Docker API health smoke test before publishing `web/` to GitHub Pages on pushes to `master`. After publication it fetches the live HTML and JavaScript to verify availability and asset syntax. Pages uses **GitHub Actions** as the deployment source.
 
 ## References
 
