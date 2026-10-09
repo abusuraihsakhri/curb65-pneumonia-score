@@ -1,12 +1,14 @@
 # CURB-65 / CRB-65 Pneumonia Severity Calculator
 
+### [Open the Live Application →](https://abusuraihsakhri.github.io/curb65-pneumonia-score/)
+
 Clinical decision-support utilities for adult community-acquired pneumonia. Includes an offline browser calculator, Python scoring functions, a CLI for individual and CSV-based assessment, and an optional FastAPI demonstration service.
 
 **Clinical limitation:** These rules estimate severity in adults with an established diagnosis; they do not diagnose pneumonia or replace assessment of oxygenation, sepsis, comorbidities, or clinical circumstances. Historical group mortality estimates must not be interpreted as individual predictions.
 
 ## Browser calculator
 
-The static application is in [web/](web/). Open `web/index.html` locally or deploy that directory to GitHub Pages using the included workflow.
+The static application is in [web/](web/). Use the [live application](https://abusuraihsakhri.github.io/curb65-pneumonia-score/) or open `web/index.html` locally.
 
 - Calculates CURB-65 (0–5) when urea or BUN is available and CRB-65 (0–4) with or without laboratory testing.
 - Validates adult age, respiratory rate, blood pressure, and laboratory values before calculating.
