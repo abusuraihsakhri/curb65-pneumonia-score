@@ -4,7 +4,7 @@
 
 Clinical decision-support utilities for adult community-acquired pneumonia. Includes an offline browser calculator, Python scoring functions, a CLI for individual and CSV-based assessment, and an optional FastAPI demonstration service.
 
-**Clinical limitation:** These rules estimate severity in adults with an established diagnosis; they do not diagnose pneumonia or replace assessment of oxygenation, sepsis, comorbidities, or clinical circumstances. Historical group mortality estimates must not be interpreted as individual predictions.
+**Clinical limitation:** These rules estimate severity in adults with an established diagnosis; they do not diagnose pneumonia or replace assessment of oxygenation, sepsis, comorbidities, or clinical circumstances. Historical group mortality estimates must not be interpreted as individual predictions. For hospitalization decisions, the 2019 ATS/IDSA guideline [prefers PSI over CURB-65](https://www.idsociety.org/practice-guideline/community-acquired-pneumonia-cap-in-adults/) as an adjunct to clinical judgment. CURB-65 scores alone should not determine ICU placement.
 
 ## Browser calculator
 
@@ -76,6 +76,7 @@ GitHub Actions runs Python 3.10–3.12, Node 22 scoring tests, a `pip-audit` che
 - Lim WS et al. Defining community acquired pneumonia severity on presentation to hospital. *Thorax*. 2003;58:377–382.
 - Fine MJ et al. A prediction rule to identify low-risk patients with community-acquired pneumonia. *N Engl J Med*. 1997;336:243–250.
 - Mandell LA et al. IDSA/ATS consensus guidelines for community-acquired pneumonia in adults. *Clin Infect Dis*. 2007;44(Suppl 2):S27–S72.
+- Metlay JP et al. Diagnosis and treatment of adults with community-acquired pneumonia. *Am J Respir Crit Care Med*. 2019;200:e45–e67.
 
 ## Compatibility and license
 
