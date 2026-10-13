@@ -54,7 +54,7 @@ The API exposes `/health`, `/metrics`, and demonstration endpoints under `/api/`
 
 ```bash
 docker build -t curb65-pneumonia-score .
-docker run --rm -p 8000:8000 -e AUDIT_SECRET_KEY='replace-with-a-random-secret' curb65-pneumonia-score
+docker run --rm -p 127.0.0.1:8000:8000 -e AUDIT_SECRET_KEY='replace-with-a-random-secret' curb65-pneumonia-score
 # or: AUDIT_SECRET_KEY='replace-with-a-random-secret' docker compose up --build
 ```
 
