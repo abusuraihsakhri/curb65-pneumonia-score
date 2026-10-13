@@ -331,8 +331,15 @@ def evaluate_patient(row):
     Returns dict with CURB-65, CRB-65, and PSI results.
     """
     def _bool(val):
+        """Parse explicitly recorded booleans; do not silently turn typos into negatives."""
+        if val is None or str(val).strip() == "":
+            return False
         s = str(val).strip().lower()
-        return s in ("1", "true", "yes", "y", "t")
+        if s in ("1", "true", "yes", "y", "t"):
+            return True
+        if s in ("0", "false", "no", "n", "f"):
+            return False
+        raise ValueError(f"Invalid boolean input: {val!r}")
 
     def _num(val, default=None):
         if val is None or str(val).strip() == "":
@@ -369,13 +376,22 @@ def evaluate_patient(row):
     # --- Respiratory rate ---
     rr_high = _bool(norm.get("respiratory_rate_high", "0"))
     rr = _num(norm.get("respiratory_rate", norm.get("rr", None)))
-    if rr is not None and rr >= 30:
-        rr_high = True
+    if rr is not None:
+        if not 1 <= rr <= 100:
+            raise ValueError("Respiratory rate must be between 1 and 100 breaths/min")
+        if rr >= 30:
+            rr_high = True
 
     # --- Blood pressure ---
     bp_low = _bool(norm.get("blood_pressure_low", "0"))
     sbp = _num(norm.get("systolic_bp", norm.get("sbp", None)))
     dbp = _num(norm.get("diastolic_bp", norm.get("dbp", None)))
+    if sbp is not None and not 40 <= sbp <= 300:
+        raise ValueError("Systolic blood pressure must be between 40 and 300 mmHg")
+    if dbp is not None and not 20 <= dbp <= 200:
+        raise ValueError("Diastolic blood pressure must be between 20 and 200 mmHg")
+    if sbp is not None and dbp is not None and dbp > sbp:
+        raise ValueError("Diastolic blood pressure cannot exceed systolic")
     if sbp is not None and sbp < 90:
         bp_low = True
     if dbp is not None and dbp <= 60:
