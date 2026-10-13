@@ -23,7 +23,7 @@ Python 3.10 or later:
 
 ```bash
 python cli.py score --confusion --urea 8 --rr 32 --sbp 85 --dbp 55 --age 70
-python cli.py crb65 --rr 20 --sbp 120 --dbp 80 --age 40
+python cli.py crb65 --no-confusion --rr 20 --sbp 120 --dbp 80 --age 40
 python cli.py psi --age 70 --sex female --altered-mental-status
 python cli.py ats-idsa --major invasive_mechanical_ventilation
 python cli.py batch --input sample.csv --output scored.csv
@@ -31,13 +31,15 @@ python cli.py batch --input sample.csv --output scored.csv
 
 For laboratory input, `--urea` means urea in **mmol/L** (abnormal above 7) and `--bun` means blood urea nitrogen in **mg/dL** (abnormal above 20). CSV input uses the columns `urea` and `bun` with those respective units. Units are not guessed from numeric values.
 
-In CSV input, `age` must be an adult age (18–120). Other columns are optional for backward compatibility; omitted measurements still contribute no points, but the result includes `curb65_complete`, `crb65_complete`, and `missing_inputs` columns to flag incomplete assessments. **Do not treat an incomplete low score as a validated low-risk classification.**
+In CSV input, `age` must be an adult age (18–120). Other columns are optional for backward compatibility; omitted measurements still contribute no points, but the result includes `curb65_complete`, `crb65_complete`, and `missing_inputs` columns to flag incomplete assessments. Unrecognized boolean values and invalid vital signs produce an error instead of being classified as normal. **Do not treat an incomplete low score as a validated low-risk classification.**
+
+Single-patient `score` and `crb65` commands also return `complete` and `missing_inputs` fields and print a warning when findings are unassessed. Explicitly specify `--no-confusion` when confusion has been assessed and is absent; simply omitting `--confusion` does not indicate a normal examination. For completeness, provide both systolic and diastolic pressures or the explicit `--bp-low` flag, and either a laboratory value or `--urea-elevated` for CURB-65. Scores are still calculated from available data for compatibility but must not be treated as validated classifications when incomplete.
 
 The PSI/PORT function implements the original adult two-stage age/clinical screening and point classification. Historical male/female age adjustments are retained because they belong to the published model. The ATS/IDSA function evaluates severe-CAP major/minor criteria. These are distinct from CURB-65 and should not be used interchangeably.
 
 ## Optional API and demonstration agents
 
-The `agents/` package and `enrichment.py` contain a separate **generic demonstration** workflow; its arbitrary measurement thresholds, mock language-model output, and regex-based identifier guard are **not validated clinical decision systems**. The identifier patterns do not establish PHI de-identification, HIPAA compliance, or certification. Do not submit real patient identifiers or sensitive clinical data.
+The `agents/` package and `enrichment.py` contain a separate **generic demonstration** workflow; its arbitrary measurement thresholds, mock output, and regex-based identifier checks are **not validated clinical decision systems**. The identifier patterns do not establish PHI de-identification, HIPAA compliance, or certification. The demonstration API has no authentication and must not be exposed publicly or used for patient data. Its chat endpoint is a deterministic mock, not a remote language-model service. Do not submit real patient identifiers or sensitive clinical data.
 
 Install the optional packages and run the API locally:
 
@@ -56,7 +58,7 @@ docker run --rm -p 8000:8000 -e AUDIT_SECRET_KEY='replace-with-a-random-secret' 
 # or: AUDIT_SECRET_KEY='replace-with-a-random-secret' docker compose up --build
 ```
 
-The container launches the FastAPI server on port 8000. Generate a strong unique key for non-demo use; never commit it to the repository. Docker is optional for the browser calculator.
+Docker Compose binds the demonstration API to `127.0.0.1:8000` by default; the direct Docker command above uses an explicit port mapping. Do not change these to a public binding without adding appropriate authentication and network controls. Generate a strong unique key for non-demo use; never commit it to the repository. Docker is optional for the browser calculator.
 
 ## Tests
 
