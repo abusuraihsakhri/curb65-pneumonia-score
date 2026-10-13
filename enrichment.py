@@ -1,6 +1,8 @@
 """
-Enrichment Feature Implementation for curb65-pneumonia-score.
-Generated based on domain-specific requirements in specifications.
+Generic enrichment demonstration components for curb65-pneumonia-score.
+
+These classes use arbitrary numeric thresholds and do not implement the clinical
+models suggested by their names. Their outputs are not for patient care.
 """
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Tuple
