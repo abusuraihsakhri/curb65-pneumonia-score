@@ -49,9 +49,9 @@ CURB65_MANAGEMENT = {
     0: "Low severity. Consider outpatient treatment.",
     1: "Low severity. Consider outpatient treatment; assess social circumstances.",
     2: "Moderate severity. Consider short inpatient stay or supervised outpatient treatment.",
-    3: "Severe pneumonia. Manage as severe; consider ICU admission.",
-    4: "Severe pneumonia. Manage as severe; consider ICU admission.",
-    5: "Severe pneumonia. Manage as severe; consider ICU admission.",
+    3: "Severe score. Urgent hospital assessment; evaluate ICU needs using severe CAP criteria.",
+    4: "Severe score. Urgent hospital assessment; evaluate ICU needs using severe CAP criteria.",
+    5: "Severe score. Urgent hospital assessment; evaluate ICU needs using severe CAP criteria.",
 }
 
 
@@ -90,11 +90,11 @@ def score_curb65(confusion, urea_elevated, respiratory_rate_high,
 # ---------------------------------------------------------------------------
 
 CRB65_MANAGEMENT = {
-    0: "Low risk. Suitable for outpatient treatment.",
+    0: "Low score. Outpatient treatment may be appropriate after clinical assessment.",
     1: "Low-moderate risk. Consider outpatient treatment with close follow-up.",
     2: "Moderate risk. Consider hospital admission or closely supervised outpatient.",
-    3: "High risk. Urgent hospital admission; consider ICU.",
-    4: "High risk. Urgent hospital admission; consider ICU.",
+    3: "High score. Urgent hospital assessment; evaluate ICU requirements clinically.",
+    4: "High score. Urgent hospital assessment; evaluate ICU requirements clinically.",
 }
 
 
@@ -298,7 +298,7 @@ def score_ats_idsa(major_criteria=None, minor_criteria=None):
     if is_severe:
         rec = "Severe CAP per ATS/IDSA criteria. ICU admission recommended."
     else:
-        rec = "Does not meet ATS/IDSA severe CAP criteria. Standard ward management."
+        rec = "Does not meet ATS/IDSA severe CAP criteria. Standard site-of-care decisions require clinical assessment; outpatient or ward care may be appropriate."
 
     return {
         "major_criteria_met": sorted(major),
