@@ -25,7 +25,7 @@
         "summary": "Demonstration counters (JSON)",
         "responses": {
           "200": {
-            "description": "Prometheus text metrics"
+            "description": "JSON demonstration counters"
           }
         }
       }
