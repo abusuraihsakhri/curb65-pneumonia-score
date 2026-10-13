@@ -1,6 +1,4 @@
 """Boundary tests for the optional, nonclinical demonstration service."""
-import math
-
 import pytest
 from pydantic import ValidationError
 
