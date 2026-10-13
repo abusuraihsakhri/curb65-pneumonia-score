@@ -3,7 +3,7 @@ FastAPI REST API Server for Curb65 Pneumonia Score.
 """
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from .base import AuditLogger, PHIGuard
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
@@ -12,18 +12,18 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Curb65 Pneumonia Score API",
-    description="Enterprise Distributed Component Platform (Clinical & Biomedical AI)",
-    version="3.0.0-ENTERPRISE",
+    description="Local demonstration service with mock responses; not a validated clinical decision system.",
+    version="0.1.0",
 )
 
 
 class ChatRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=2000)
 
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "curb65-pneumonia-score", "domain": "Clinical & Biomedical AI", "standard": "CAP / CLSI / ISO Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY", "service": "curb65-pneumonia-score", "domain": "Clinical & Biomedical AI", "mode": "demo", "version": "0.1.0"}
 
 
 @app.get("/metrics")

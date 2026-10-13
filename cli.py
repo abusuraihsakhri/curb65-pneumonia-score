@@ -13,6 +13,7 @@ Usage:
 import argparse
 import csv
 import json
+import math
 import sys
 
 from curb65 import (
@@ -51,8 +52,51 @@ def _print_result(result, label="Result"):
     print()
 
 
+def _validate_clinical_args(args):
+    """Reject implausible or non-finite measurements rather than scoring them as normal."""
+    bounds = (
+        ("age", 18, 120), ("rr", 1, 100), ("sbp", 40, 300),
+        ("dbp", 20, 200), ("urea", 0, 80), ("bun", 0, 200),
+    )
+    for key, lower, upper in bounds:
+        value = getattr(args, key, None)
+        if value is not None and (not math.isfinite(value) or not lower <= value <= upper):
+            raise ValueError(f"{key} must be between {lower} and {upper}")
+    if args.sbp is not None and args.dbp is not None and args.dbp > args.sbp:
+        raise ValueError("Diastolic blood pressure cannot exceed systolic")
+    if getattr(args, "urea", None) is not None and getattr(args, "bun", None) is not None:
+        raise ValueError("Provide either --urea or --bun, not both")
+
+
+def _missing_clinical_inputs(args, include_lab):
+    missing = []
+    if not args.confusion and not args.no_confusion:
+        missing.append("confusion")
+    if args.rr is None and not args.rr_high:
+        missing.append("respiratory_rate")
+    if not args.bp_low and (args.sbp is None or args.dbp is None):
+        missing.append("systolic_and_diastolic_bp")
+    if include_lab and args.urea is None and args.bun is None and not args.urea_elevated:
+        missing.append("urea_or_bun")
+    return missing
+
+
+def _annotate_completeness(result, args, include_lab):
+    missing = _missing_clinical_inputs(args, include_lab)
+    result["complete"] = not missing
+    result["missing_inputs"] = missing
+    if missing:
+        print("Warning: incomplete assessment; a low score may underestimate severity. "
+              "Missing: " + ", ".join(missing), file=sys.stderr)
+
+
 def cmd_score(args):
     """Score a single patient with CURB-65."""
+    try:
+        _validate_clinical_args(args)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
     # Urea: if value given, check if elevated; otherwise use flag
     urea_elevated = args.urea_elevated
     if args.urea is not None:
@@ -83,6 +127,7 @@ def cmd_score(args):
         age_ge_65=age_ge_65,
     )
 
+    _annotate_completeness(result, args, include_lab=True)
     if args.json:
         print(json.dumps(result, indent=2))
     else:
@@ -92,6 +137,11 @@ def cmd_score(args):
 
 def cmd_crb65(args):
     """Score a single patient with CRB-65 (no lab)."""
+    try:
+        _validate_clinical_args(args)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
     rr_high = args.rr_high
     if args.rr is not None:
         rr_high = args.rr >= 30
@@ -111,6 +161,7 @@ def cmd_crb65(args):
         age_ge_65=age_ge_65,
     )
 
+    _annotate_completeness(result, args, include_lab=False)
     if args.json:
         print(json.dumps(result, indent=2))
     else:
@@ -269,7 +320,9 @@ def build_parser():
 
     # --- score (CURB-65) ---
     s = sub.add_parser("score", help="Calculate CURB-65 score for a single patient")
-    s.add_argument("--confusion", action="store_true", help="New-onset confusion")
+    s_confusion = s.add_mutually_exclusive_group()
+    s_confusion.add_argument("--confusion", action="store_true", help="New-onset confusion present")
+    s_confusion.add_argument("--no-confusion", action="store_true", help="New-onset confusion assessed and absent")
     s.add_argument("--urea", type=float, default=None, help="Urea in mmol/L")
     s.add_argument("--bun", type=float, default=None, help="BUN in mg/dL")
     s.add_argument("--urea-elevated", action="store_true", help="Urea/BUN elevated (flag)")
@@ -283,7 +336,9 @@ def build_parser():
 
     # --- crb65 ---
     c = sub.add_parser("crb65", help="Calculate CRB-65 score (no lab required)")
-    c.add_argument("--confusion", action="store_true", help="New-onset confusion")
+    c_confusion = c.add_mutually_exclusive_group()
+    c_confusion.add_argument("--confusion", action="store_true", help="New-onset confusion present")
+    c_confusion.add_argument("--no-confusion", action="store_true", help="New-onset confusion assessed and absent")
     c.add_argument("--rr", type=float, default=None, help="Respiratory rate (breaths/min)")
     c.add_argument("--rr-high", action="store_true", help="RR >= 30 (flag)")
     c.add_argument("--sbp", type=float, default=None, help="Systolic BP (mmHg)")
